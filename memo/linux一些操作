@@ -1,0 +1,134 @@
+#内存
+ps aux --sort -rss|grep java
+
+#线程数等数据
+cat /proc/PID/status
+
+#压缩
+tar -czvf 文件名 要打包内容
+tar -xzvf file.tar.gz
+
+日志
+zcat vsftpd.tar.gz|grep --binary-files=text 'footbar.js'或
+zgrep --binary-files=text 'footbar.js' vsftpd.tar.gz
+
+sudo rz -y 覆盖文件
+sudo unzip -o
+sudo cp -rf
+chmod +x *.sh
+
+df -lh 磁盘大小
+
+du -h --max-depth=1 文件夹大小
+
+sudo scp -P 58880  ./dwc-pj.tar.gz dwc-lyp@112.74.140.11:/data/project/dwc
+
+jmap -histo:live 15441|less
+
+netstat -nap|grep 120.24.166.239:6379
+
+nohup java .... > xx.txt &
+
+jps
+
+功能
+
+显示当前所有java进程pid的命令。
+
+常用指令
+
+jps：显示当前用户的所有java进程的PID
+jps -v 3331：显示虚拟机参数
+jps -m 3331：显示传递给main()函数的参数
+jps -l 3331：显示主类的全路径
+详细介绍
+
+jinfo
+
+功能
+
+实时查看和调整虚拟机参数，可以显示未被显示指定的参数的默认值（jps -v 则不能）。
+
+jdk8中已经不支持该命令。
+
+常用指令
+
+jinfo -flag CMSIniniatingOccupancyFration 1444：查询CMSIniniatingOccupancyFration参数值
+
+详细介绍
+
+jstat
+
+功能
+
+显示进程中的类装载、内存、垃圾收集、JIT编译等运行数据。
+
+常用指令
+
+jstat -gc 3331 250 20 ：查询进程2764的垃圾收集情况，每250毫秒查询一次，一共查询20次。
+jstat -gccause：额外输出上次GC原因
+jstat -calss：件事类装载、类卸载、总空间以及所消耗的时间
+详细介绍
+
+jmap
+
+功能
+
+生成堆转储快照（heapdump）
+
+常用指令
+
+jmap -heap 3331：查看java 堆（heap）使用情况
+jmap -histo 3331：查看堆内存(histogram)中的对象数量及大小
+jmap -histo:live 3331：JVM会先触发gc，然后再统计信息
+jmap -dump:format=b,file=heapDump 3331：将内存使用的详细情况输出到文件，之后一般使用其他工具进行分析。
+详细介绍
+
+jhat
+
+功能
+
+一般与jmap搭配使用，用来分析jmap生成的堆转储文件。
+
+由于有很多可视化工具（Eclipse Memory Analyzer 、IBM HeapAnalyzer）可以替代，所以很少用。不过在没有可视化工具的机器上也是可用的。
+
+常用指令
+
+jmap -dump:format=b,file=heapDump 3331 + jhat heapDump：解析Java堆转储文件,并启动一个 web server
+
+详细介绍
+
+jstack
+
+功能
+
+生成当前时刻的线程快照。
+
+常用指令
+
+jstack 3331：查看线程情况
+jstack -F 3331：正常输出不被响应时，使用该指令
+jstack -l 3331：除堆栈外，显示关于锁的附件信息
+详细介绍
+
+常见问题定位过程
+
+频繁GC问题或内存溢出问题
+
+一、使用jps查看线程ID
+
+二、使用jstat -gc 3331 250 20 查看gc情况，一般比较关注PERM区的情况，查看GC的增长情况。
+
+三、使用jstat -gccause：额外输出上次GC原因
+
+四、使用jmap -dump:format=b,file=heapDump 3331生成堆转储文件
+
+五、使用jhat或者可视化工具（Eclipse Memory Analyzer 、IBM HeapAnalyzer）分析堆情况。
+
+六、结合代码解决内存溢出或泄露问题。
+
+死锁问题
+
+一、使用jps查看线程ID
+
+二、使用jstack 3331：查看线程情况

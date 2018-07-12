@@ -1,0 +1,78 @@
+--------------------------------部署脚本--------------------------------------
+#!/bin/bash  
+source /etc/profile;
+
+project='ec-scrapy';
+tomcat='#';
+job_name="${JOB_NAME}";
+idc='dev';#idc='test'; idc='#';
+dellib='false';
+
+#变量定义 ip1 ip2   
+#  	
+#deploy_remote_tomcat:servers=$1,project=$2,tomcat=$3,job_name=$4,idc=$5,dellib=$6,test=$7
+/data/project/jenkins_build/deploy_remote_tomcat.sh "ip多个以空格分隔" $project $tomcat $job_name $idc $dellib $test;
+
+
+---------------------------deploy_remote_tomcat.sh脚本---------------------------------
+#!/bin/bash  
+echo "deploy_remote_tomcat:servers=$1,project=$2,tomcat=$3,job_name=$4,idc=$5,dellib=$6,norestart=$7 "
+
+ip_array=($1);
+project=$2;
+tomcat=$3;
+jobname=$4;
+idc="release";
+dellib="";
+
+
+length=${#ip_array[@]};
+
+if [[ $length -lt 0 || -z $project ]] ;then
+ echo 'Useage:deploy_remote_tomcat.sh "server1 server2..." project_name tomcat_path jobname idc dellib ';
+ exit 1;
+fi;
+
+
+
+if [[ -z $3 || "#" == $3 ]] ;then
+  tomcat="/usr/local/tomcat_7.0.39_$project";
+fi;
+
+if [[ -z $4 || "#" == $4 ]] ;then
+  jobname="release-$project";
+fi;
+
+if [[ -n $5 && "#" != $5 ]] ;then
+  idc="release-$5";
+fi;
+
+if [[ -n $6 && "#" != $6 && "false" != $6  ]] ;then
+  dellib="rm -rf $project/WEB-INF/lib/;";
+fi;
+
+release_cp="cp -R dbfound-conf.xml ../;cp -R web.xml ../;cp -R $idc/* .";
+
+remote_cmd3=";cd $tomcat/bin;./restartup.sh";
+if [[ -n $7 && "#" != $7 && "false" != $7  ]] ;then
+  remote_cmd3="";
+fi;
+
+remote_cmd1="source /etc/profile;cp /data/project/jenkins_build/$project.zip  $tomcat/webproject;cd $tomcat/webproject;tar -zcvf $project.`date "+%Y%m%d%H%M"`.tar.gz $project;$dellib unzip -o $project.zip;"
+remote_cmd2="find  . -type f -name '*.tar.gz' -mtime +7|xargs rm -rf;cd $project/WEB-INF/classes;$release_cp"
+#remote_cmd3="cd $tomcat/bin;./restartup.sh"
+remote_cmd=$remote_cmd1$remote_cmd2$remote_cmd3
+echo "========remote_cmd=$remote_cmd"
+
+remote_dir="/data/project/jenkins_build"
+user='root'
+
+#本地通过ssh执行远程服务器的脚本  
+for ip in ${ip_array[*]}  
+do  
+    echo "deploying:server=$ip ....."
+    port=22
+    ssh  -p $port $user@$ip "mkdir -p $remote_dir"
+    scp -P $port  /data/project/soft/jenkins/workspace/$jobname/target/zip/$project.zip $user@$ip:$remote_dir
+    ssh  -p $port $user@$ip "$remote_cmd"  
+done
